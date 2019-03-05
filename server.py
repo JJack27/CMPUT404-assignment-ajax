@@ -22,7 +22,7 @@
 
 
 import flask
-from flask import Flask, request
+from flask import Flask, request ,redirect
 import json
 app = Flask(__name__)
 app.debug = True
@@ -64,27 +64,40 @@ myWorld = World()
 def flask_post_json():
     '''Ah the joys of frameworks! They do so much work for you
        that they get in the way of sane operation!'''
+    print(json.loads(request.data.decode()))
     if (request.json != None):
+        print(1)
         return request.json
     elif (request.data != None and request.data.decode("utf8") != u''):
+        print(2)
         return json.loads(request.data.decode("utf8"))
     else:
+        print(3)
         return json.loads(request.form.keys()[0])
 
 @app.route("/")
 def hello():
     '''Return something coherent here.. perhaps redirect to /static/index.html '''
-    return None
+    return redirect("./static/index.html", code=301)
 
 @app.route("/entity/<entity>", methods=['POST','PUT'])
 def update(entity):
     '''update the entities via this interface'''
+    print('asdfsdf')
+    body = flask_post_json()
+    print(type(body))
+    if request.method == 'POST':
+        # do post
+        myWorld.update(entity, body.keys(), body.value())
+    elif request.method == 'PUT':
+        # do put
+        myWorld.set(entity, body)
     return None
 
 @app.route("/world", methods=['POST','GET'])    
 def world():
     '''you should probably return the world here'''
-    return None
+    return myWorld.world()
 
 @app.route("/entity/<entity>")    
 def get_entity(entity):
