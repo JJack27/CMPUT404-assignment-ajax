@@ -47,6 +47,11 @@ class World:
 
     def clear(self):
         self.space = dict()
+        self.connections = 0
+
+    def increment_connection(self):
+        self.connections += 1
+        return {'id': self.connections}
 
     def get(self, entity):
         return self.space.get(entity,dict())
@@ -64,15 +69,11 @@ myWorld = World()
 def flask_post_json():
     '''Ah the joys of frameworks! They do so much work for you
        that they get in the way of sane operation!'''
-    print(json.loads(request.data.decode()))
     if (request.json != None):
-        print(1)
         return request.json
     elif (request.data != None and request.data.decode("utf8") != u''):
-        print(2)
         return json.loads(request.data.decode("utf8"))
     else:
-        print(3)
         return json.loads(request.form.keys()[0])
 
 @app.route("/")
@@ -80,34 +81,44 @@ def hello():
     '''Return something coherent here.. perhaps redirect to /static/index.html '''
     return redirect("./static/index.html", code=301)
 
+@app.route("/give-me-id")
+def give_me_id():
+    '''Return something coherent here.. perhaps redirect to /static/index.html '''
+    response = myWorld.increment_connection()
+    return json.dumps(response)
+
 @app.route("/entity/<entity>", methods=['POST','PUT'])
 def update(entity):
     '''update the entities via this interface'''
-    print('asdfsdf')
     body = flask_post_json()
-    print(type(body))
     if request.method == 'POST':
         # do post
-        myWorld.update(entity, body.keys(), body.value())
+        for key, value in body.items():
+            myWorld.update(entity, key, value)
+        result = myWorld.get(entity)
+        return json.dumps(result)
     elif request.method == 'PUT':
         # do put
         myWorld.set(entity, body)
-    return None
+        result = myWorld.get(entity)
+        return json.dumps(result)
 
 @app.route("/world", methods=['POST','GET'])    
 def world():
     '''you should probably return the world here'''
-    return myWorld.world()
+    return json.dumps(myWorld.world())
 
 @app.route("/entity/<entity>")    
 def get_entity(entity):
     '''This is the GET version of the entity interface, return a representation of the entity'''
-    return None
+    result = myWorld.get(entity)
+    return json.dumps(result)
 
 @app.route("/clear", methods=['POST','GET'])
 def clear():
     '''Clear the world out!'''
-    return None
+    myWorld.clear()
+    return json.dumps(myWorld.world())
 
 if __name__ == "__main__":
     app.run()
